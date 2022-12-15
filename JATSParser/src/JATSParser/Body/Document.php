@@ -1,5 +1,6 @@
 <?php namespace JATSParser\Body;
 
+use ChromePhp;
 use JATSParser\Body\Section as Section;
 use JATSParser\Back\Journal as Journal;
 use JATSParser\Back\Book as Book;
@@ -110,7 +111,7 @@ class Document {
 		}
 		$this->references = $references;
 	}
-
+// TODO: Acá es donde se extrae el jats y se va guardando en un array todo
 	private function extractContent(): void
 	{
 		$articleContent = array();
