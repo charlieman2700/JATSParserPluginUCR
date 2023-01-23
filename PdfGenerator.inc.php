@@ -152,7 +152,6 @@ class PdfGenerator
 
     // ChromePhp::log($issue);
     // ChromePhp::log($prueba);
-    // TODO: Lograr que esto funcione, ahorita no hace nada 
 
     // HTML preparation
     $context = $this->_request->getContext(); /* @var $context Journal */
@@ -165,10 +164,9 @@ class PdfGenerator
     $userGroups = $userGroupDao->getByContextId($context->getId())->toArray();
 
     $articleDataString = $this->_getArticleDataString($this->_publication, $this->_request, $this->_localeKey);
-    // $pdfHeaderLogo = $this->_getHeaderLogo($this->_request);
-    $pdfHeaderLogo = $this->_pluginPath . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'logoUcr.png';
+
     $this->_pdfDocument->SetCreator(PDF_CREATOR);
-    $journal = $this->_request->getContext();
+
 
     $this->_pdfDocument->setPrintHeader(false);
     $this->_setTitle($this->_pdfDocument);
@@ -264,8 +262,8 @@ class PdfGenerator
 
     $context = $this->_request->getContext(); // Journal context
 
+    $journalLogo = $this->_getHeaderLogo($this->_request);
     $logoUcr = $this->_pluginPath . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'logoUcr.png';
-    $logoRevista = $this->_pluginPath . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'logoRevistaMaderYBosques.png';
 
     $this->_pdfDocument->Image($logoUcr, 25.4, 3, 40);
     // TODO Que Jorge evalue si le parece porque no se ve bien dos logos juntos
