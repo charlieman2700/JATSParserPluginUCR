@@ -37,6 +37,11 @@ class PublicationJATSUploadForm extends FormComponent
 		$options = [];
 		$pdfOptions = [];
 		$templateOptions = [];
+		$imagesFormOptions = [];
+
+
+		$imagesOptions = array('Logo', 'Journal Thumbnail', 'None');
+		$templates = array('Template1', 'Template2', 'Template3');
 
 		foreach ($locales as $value) {
 			$locale = $value['key'];
@@ -53,10 +58,11 @@ class PublicationJATSUploadForm extends FormComponent
 				);
 			}
 
-			$lang[] = array(
-				'value' => null,
-				'label' => __('common.default')
-			);
+      // Insert a Null Options
+			// $lang[] = array(
+			// 	'value' => null,
+			// 	'label' => __('common.default')
+			// );
 
 			$options[$locale] = $lang;
 
@@ -65,14 +71,22 @@ class PublicationJATSUploadForm extends FormComponent
 				'label' => __('common.yes')
 			);
 
-			$templates = array('Template1', 'Template2', 'Template3');
+
+			foreach ($imagesOptions as $imagesOption) {
+				$imagesFormOptions[$locale][] = array(
+					'value' => $imagesOption,
+					'label' => $imagesOption
+				);
+			}
 			foreach ($templates as $template) {
 				$templateOptions[$locale][] = array(
 					'value' => $template,
 					'label' => $template
 				);
 			}
+
 		}
+$templateOptions2 =
 
 		// Update the values so the proper option is selected on thr form initiation if full-text isn't selected for the specific locale
 		$values = $publication->getData('jatsParser::fullTextFileId');
@@ -101,11 +115,20 @@ class PublicationJATSUploadForm extends FormComponent
 					'isMultilingual' => true,
 					'options' => $pdfOptions,
 				]));
-				$this->addField(new FieldOptions('jatsParser::selectedTemplate', [
-					'label' => 'Select Template',
+
+        // TODO: Future Feature
+				// $this->addField(new FieldOptions('jatsParser::selectedTemplate', [
+				// 	'label' => 'Select Template',
+				// 	'type' => 'radio',
+				// 	'isMultilingual' => true,
+				// 	'options' => $templateOptions,
+				// ]));
+
+				$this->addField(new FieldOptions('jatsParser::imageOption', [
+					'label' => 'Select journal image on first page',
 					'type' => 'radio',
 					'isMultilingual' => true,
-					'options' => $templateOptions,
+					'options' => $imagesFormOptions,
 				]));
 			}
 		} else {
