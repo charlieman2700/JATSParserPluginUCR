@@ -1,13 +1,10 @@
 <?php
 
-use JATSParser\Back\Journal;
-use JATSParser\Body\Figure;
 use JATSParser\Body\KeywordGroup;
 use JATSParser\PDF\TCPDFDocument;
-use JATSParser\Body\Section;
 
-import('plugins.generic.jatsParser.ChromePhp');
 import('plugins.generic.jatsParser.KeywordGroup');
+include 'ChromePhp';
 
 // import('plugins.generic.jatsParser.KeywordGroup');
 // import('plugins.generic.jatsParser.PdfGenerator');
@@ -23,6 +20,7 @@ class PdfGenerator
   private string $_localeKey;
   private string $_pluginPath;
   private TCPDFDocument $_pdfDocument;
+
 
 
   /* @var $document \DOMDocument */
@@ -46,11 +44,13 @@ class PdfGenerator
   private $_abbreviatedTitle = '';
   private $_license = '';
 
+  private $_formParams;
 
 
 
 
-  public function __construct(string $htmlString, Publication $publication, Request $request, string $localeKey, string $pluginPath, $submissionPluginPath)
+
+  public function __construct(string $htmlString, Publication $publication, Request $request, string $localeKey, string $pluginPath, $submissionPluginPath, $formParams)
   {
 
     $this->_htmlString = $htmlString;
@@ -59,8 +59,6 @@ class PdfGenerator
     $this->_localeKey = $localeKey;
     $this->_pluginPath = $pluginPath;
     $this->_pdfDocument = new TCPDFDocument();
-    ChromePhp::log('Reciviendo path del xml');
-    ChromePhp::log($submissionPluginPath);
     $document = new \DOMDocument;
     $this->document = $document->load($submissionPluginPath);
     self::$xpath = new \DOMXPath($document);
@@ -71,6 +69,8 @@ class PdfGenerator
     $this->_publisher = $context->getSetting('publisherInstitution');
     $this->_abbreviatedTitle = $context->getLocalizedSetting('abbreviation');
 
+    $this->_formParams = $formParams;
+
     $this->extractContent();
   }
   private function extractContent()
@@ -78,9 +78,6 @@ class PdfGenerator
     $articleContent = array();
     foreach (self::$xpath->evaluate("/article/front/article-meta/kwd-group") as $kwdGroupNode) {
       $kwGroupFound = new KeywordGroup($kwdGroupNode, self::$xpath);
-      ChromePhp::log('title FOund and saved');
-      ChromePhp::log($kwGroupFound->getTitle());
-      ChromePhp::log($this->_pdfDocument->getAliasNumPage());
       $articleContent[] = $kwGroupFound;
     }
     $this->keywords = $articleContent;
@@ -129,8 +126,8 @@ class PdfGenerator
 
   public function createPdf(): string
   {
-    $data = file_get_contents($this->_pluginPath . DIRECTORY_SEPARATOR . "pdfStyleTemplates" . DIRECTORY_SEPARATOR . "prueba.json");
-    $prueba = json_decode($data, true);
+    // $data = file_get_contents($this->_pluginPath . DIRECTORY_SEPARATOR . "pdfStyleTemplates" . DIRECTORY_SEPARATOR . "prueba.json");
+    // $prueba = json_decode($data, false);
     //TODO agregar journal como atrbuto de clase
 
     // $article =& $record->getData('article');
@@ -172,7 +169,7 @@ class PdfGenerator
     $this->_pdfDocument->SetAuthor($this->_publication->getAuthorString($userGroups));
     $this->_pdfDocument->SetSubject($this->_publication->getLocalizedData('subject', $this->_localeKey));
 
-    $this->_pdfDocument->SetHeaderData($pdfHeaderLogo, 20, $this->_title, $articleDataString);
+    $this->_pdfDocument->SetHeaderData('', 20, $this->_title, $articleDataString);
     $this->_setFundamentalVisualizationParamters($this->_pdfDocument);
     $this->_pdfDocument->setPageFormat('LETTER', "P"); // Recibe el formato y la orientación del documento como parámetros.
 
@@ -233,23 +230,25 @@ class PdfGenerator
     $pdfDocument->setFooterHtml($footer);
   }
 
-  private function _getJournalLogo(Request $request, string $imageIdentifier): string
+  private function _getJournalLogo(): string
   {
-    $imageUrl = '';
-    $journal = $request->getContext();
-    ChromePhp::log($journal);
 
-    if ($imageIdentifier === 'journalThumbnail') {
+    $selectedImageOption = ($this->_formParams['jatsParser::imageOption']['en_US']);
+    $imageUrl = '';
+    $journal = $this->_request->getContext();
+
+    if ($selectedImageOption === 'Journal Thumbnail') {
       $imageUrl = $journal->getLocalizedData('journalThumbnail');
-    } elseif ($imageIdentifier === 'pageHeaderLogoImage') {
+    } elseif ($selectedImageOption === 'Logo') {
       $imageUrl = $journal->getLocalizedData('pageHeaderLogoImage');
     }
 
     if (!empty($imageUrl)) {
       $journalFilesPath = __DIR__ . '/../../../' . Config::getVar('files', 'public_files_dir') . '/journals/' . $journal->getId() . '/'; // TCPDF accepts only relative path
       $imageLocation = $journalFilesPath . $imageUrl['uploadName'];
-    } else {
-      $imageLocation = __DIR__ . "/JATSParser/logo/logo.jpg";
+    } 
+    else {
+      $imageLocation =  '';
     }
     return $imageLocation;
   }
@@ -265,13 +264,13 @@ class PdfGenerator
   {
     $context = $this->_request->getContext(); // Journal context
 
-    $journalLogo = $this->_getJournalLogo($this->_request, 'journalThumbnail');
     $logoUcr = $this->_pluginPath . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'logoUcr.png';
+    $imageOnFrontPage = $this->_getJournalLogo();
 
     $this->_pdfDocument->Image($logoUcr, PDF_MARGIN_LEFT, 3, 40);
     $rightImageWidth = 40;
     $rightImagePositionInX = $this->_pdfDocument->getPageWidth() - PDF_MARGIN_RIGHT - $rightImageWidth;
-    $this->_pdfDocument->Image($journalLogo, $rightImagePositionInX, 3, 40);
+    $this->_pdfDocument->Image($imageOnFrontPage, $rightImagePositionInX, 3, 40);
 
     $journalName = $context->getLocalizedSetting('name');
 
@@ -290,6 +289,8 @@ class PdfGenerator
     $this->_pdfDocument->SetFillColor(255, 255, 255); //rgb
     $this->_pdfDocument->SetFont('times', 'B', 15);
     $this->_pdfDocument->setCellHeightRatio(1.2);
+    $this->_pdfDocument->MultiCell('', '', 'asdf', 0, 'R', 1, 1, '', '', true);
+    $this->_pdfDocument->MultiCell('', '', $this->_formParams['jatsParser::selectedTemplate'], 0, 'R', 1, 1, '', '', true);
     $this->_pdfDocument->MultiCell('', '', 'Journal Information', 0, 'R', 1, 1, '', '', true);
     $this->_printPairInfo('Journal ID (publisher-id):', $context->getLocalizedSetting('acronym')); //Localized es para objetos
     $this->_printPairInfo('Abbreviated Title:', $context->getLocalizedSetting('abbreviation'));
