@@ -40,11 +40,10 @@ class PdfGenerator
   private $_lpage = '';
   private $_enTitle = '';
   private $_category = '';
-  private $_journalId  = '';
-  private $_issn  = '';
-  private $_publisher  = '';
-  private $_abbreviatedTitle  = '';
-  // TODO: Make
+  private $_journalId = '';
+  private $_issn = '';
+  private $_publisher = '';
+  private $_abbreviatedTitle = '';
   private $_license = '';
 
 
@@ -234,17 +233,25 @@ class PdfGenerator
     $pdfDocument->setFooterHtml($footer);
   }
 
-  private function _getHeaderLogo(Request $request): string
+  private function _getJournalLogo(Request $request, string $imageIdentifier): string
   {
+    $imageUrl = '';
     $journal = $request->getContext();
-    $thumb = $journal->getLocalizedData('journalThumbnail');
-    if (!empty($thumb)) {
-      $journalFilesPath = __DIR__ . '/../../../' . Config::getVar('files', 'public_files_dir') . '/journals/' . $journal->getId() . '/'; // TCPDF accepts only relative path
-      $pdfHeaderLogoLocation = $journalFilesPath . $thumb['uploadName'];
-    } else {
-      $pdfHeaderLogoLocation = __DIR__ . "/JATSParser/logo/logo.jpg";
+    ChromePhp::log($journal);
+
+    if ($imageIdentifier === 'journalThumbnail') {
+      $imageUrl = $journal->getLocalizedData('journalThumbnail');
+    } elseif ($imageIdentifier === 'pageHeaderLogoImage') {
+      $imageUrl = $journal->getLocalizedData('pageHeaderLogoImage');
     }
-    return $pdfHeaderLogoLocation;
+
+    if (!empty($imageUrl)) {
+      $journalFilesPath = __DIR__ . '/../../../' . Config::getVar('files', 'public_files_dir') . '/journals/' . $journal->getId() . '/'; // TCPDF accepts only relative path
+      $imageLocation = $journalFilesPath . $imageUrl['uploadName'];
+    } else {
+      $imageLocation = __DIR__ . "/JATSParser/logo/logo.jpg";
+    }
+    return $imageLocation;
   }
 
   private function _printPairInfo(string $name, string $info)
@@ -256,20 +263,16 @@ class PdfGenerator
 
   private function _createFrontPage(): void
   {
-    // $header_x = $this->_pdfDocument->original_lMargin;
-    // $this->_pdfDocument->SetY();
-    // $this->_pdfDocument->SetX($header_x);
-
     $context = $this->_request->getContext(); // Journal context
 
-    $journalLogo = $this->_getHeaderLogo($this->_request);
+    $journalLogo = $this->_getJournalLogo($this->_request, 'journalThumbnail');
     $logoUcr = $this->_pluginPath . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'logoUcr.png';
 
-    $this->_pdfDocument->Image($logoUcr, 25.4, 3, 40);
-    // TODO Que Jorge evalue si le parece porque no se ve bien dos logos juntos
-    // $this->_pdfDocument->Image($logoRevista, 90, 5, 60);
+    $this->_pdfDocument->Image($logoUcr, PDF_MARGIN_LEFT, 3, 40);
+    $rightImageWidth = 40;
+    $rightImagePositionInX = $this->_pdfDocument->getPageWidth() - PDF_MARGIN_RIGHT - $rightImageWidth;
+    $this->_pdfDocument->Image($journalLogo, $rightImagePositionInX, 3, 40);
 
-    // header title
     $journalName = $context->getLocalizedSetting('name');
 
     $this->_pdfDocument->SetY(26);
@@ -343,7 +346,7 @@ class PdfGenerator
       $this->_pdfDocument->setCellPaddings(5, 5, 5, 5);
       $this->_pdfDocument->SetFillColor(255, 255, 255); // Color de fondo del abstract
       $this->_pdfDocument->SetFont('times', '', 9);
-      $this->_pdfDocument->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 4, 'color' => array(255, 255, 255)));  // Tipo de linea divisoria y color
+      $this->_pdfDocument->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 4, 'color' => array(255, 255, 255))); // Tipo de linea divisoria y color
       $this->_pdfDocument->writeHTMLCell('', '', '', '', $abstract, 'B', 1, 1, true, 'J', true);
       $this->_pdfDocument->Ln(4);
     }
@@ -434,7 +437,6 @@ class PdfGenerator
    * @return string Preprocessed HTML string for TCPDF
    */
   private function _prepareForPdfGalley(string $htmlString): string
-
   {
 
     $dom = new DOMDocument('1.0', 'utf-8');
