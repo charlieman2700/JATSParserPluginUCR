@@ -233,13 +233,13 @@ class PdfGenerator
   private function _getJournalLogo(): string
   {
 
-    $selectedImageOption = ($this->_formParams['jatsParser::imageOption']['en_US']);
+    $selectedImageOption = ($this->_formParams['imageOnFirstPage']);
     $imageUrl = '';
     $journal = $this->_request->getContext();
 
-    if ($selectedImageOption === 'Journal Thumbnail') {
+    if ($selectedImageOption === 'journalThumbnail') {
       $imageUrl = $journal->getLocalizedData('journalThumbnail');
-    } elseif ($selectedImageOption === 'Logo') {
+    } elseif ($selectedImageOption === 'logo') {
       $imageUrl = $journal->getLocalizedData('pageHeaderLogoImage');
     }
 
@@ -289,8 +289,6 @@ class PdfGenerator
     $this->_pdfDocument->SetFillColor(255, 255, 255); //rgb
     $this->_pdfDocument->SetFont('times', 'B', 15);
     $this->_pdfDocument->setCellHeightRatio(1.2);
-    $this->_pdfDocument->MultiCell('', '', 'asdf', 0, 'R', 1, 1, '', '', true);
-    $this->_pdfDocument->MultiCell('', '', $this->_formParams['jatsParser::selectedTemplate'], 0, 'R', 1, 1, '', '', true);
     $this->_pdfDocument->MultiCell('', '', 'Journal Information', 0, 'R', 1, 1, '', '', true);
     $this->_printPairInfo('Journal ID (publisher-id):', $context->getLocalizedSetting('acronym')); //Localized es para objetos
     $this->_printPairInfo('Abbreviated Title:', $context->getLocalizedSetting('abbreviation'));

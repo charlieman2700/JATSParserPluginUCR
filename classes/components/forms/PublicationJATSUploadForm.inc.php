@@ -3,138 +3,137 @@
 use PKP\components\forms\FieldHTML;
 use \PKP\components\forms\FormComponent;
 use \PKP\components\forms\FieldOptions;
-use JATSParser\Body\Document as JATSDocument;
-use JATSParser\HTML\Document as HTMLDocument;
+use \PKP\components\forms\FieldText;
 
 define("FORM_PUBLICATION_JATS_FULLTEXT", "jatsUpload");
 
 class PublicationJATSUploadForm extends FormComponent
 {
-	/** @copydoc FormComponent::$id */
-	public $id = FORM_PUBLICATION_JATS_FULLTEXT;
+  /** @copydoc FormComponent::$id */
+  public $id = FORM_PUBLICATION_JATS_FULLTEXT;
 
-	/** @copydoc FormComponent::$method */
-	public $method = 'PUT';
+  /** @copydoc FormComponent::$method */
+  public $method = 'PUT';
 
-	/**
-	 * Constructor
-	 *
-	 * @param $action string URL to submit the form to
-	 * @param $locales array Supported locales
-	 * @param $publication \Publication publication to change settings for
-	 * @param $submissionFiles array of SubmissionFile with xml type
-	 * @param $msg string field description
-	 */
-	public function __construct($action, $locales, $publication, $submissionFiles, $msg)
-	{
-		/**
-		 * @var $submissionFile SubmissionFile
-		 */
-		$this->action = $action;
-		$this->successMessage = __('plugins.generic.jatsParser.publication.jats.fulltext.success');
-		$this->locales = $locales;
+  /**
+   * Constructor
+   *
+   * @param $action string URL to submit the form to
+   * @param $locales array Supported locales
+   * @param $publication \Publication publication to change settings for
+   * @param $submissionFiles array of SubmissionFile with xml type
+   * @param $msg string field description
+   */
+  public function __construct($action, $locales, $publication, $submissionFiles, $msg)
+  {
+    /**
+     * @var $submissionFile SubmissionFile
+     */
+    $this->action = $action;
+    $this->successMessage = __('plugins.generic.jatsParser.publication.jats.fulltext.success');
+    $this->locales = $locales;
 
-		$options = [];
-		$pdfOptions = [];
-		$templateOptions = [];
-		$imagesFormOptions = [];
-
-
-		$imagesOptions = array('Logo', 'Journal Thumbnail', 'None');
-		$templates = array('Template1', 'Template2', 'Template3');
-
-		foreach ($locales as $value) {
-			$locale = $value['key'];
-			$lang = [];
-			if (empty($submissionFiles)) break;
-			foreach ($submissionFiles as $submissionFile) {
-				$subName = $submissionFile->getData('name', $locale);
-				if (empty($subName)) {
-					$subName = $submissionFile->getLocalizedData('name');
-				}
-				$lang[] = array(
-					'value' => $submissionFile->getId(),
-					'label' => $subName
-				);
-			}
-
-      // Insert a Null Options
-			// $lang[] = array(
-			// 	'value' => null,
-			// 	'label' => __('common.default')
-			// );
-
-			$options[$locale] = $lang;
-
-			$pdfOptions[$locale][] = array(
-				'value' => true,
-				'label' => __('common.yes')
-			);
+    $options = [];
+    $pdfOptions = [];
+    $wantsToAddImageOptions = [
+      ['value' => 'yes', 'label' => 'Yes'],
+    ];
+    $imagesFormOptions = [
+      ['value' => 'logo', 'label' => 'Logo'],
+      ['value' => 'journalThumbnail', 'label' => 'Journal Thumbnail'],
+      ['value' => 'none', 'label' => 'None'],
+    ];
 
 
-			foreach ($imagesOptions as $imagesOption) {
-				$imagesFormOptions[$locale][] = array(
-					'value' => $imagesOption,
-					'label' => $imagesOption
-				);
-			}
-			foreach ($templates as $template) {
-				$templateOptions[$locale][] = array(
-					'value' => $template,
-					'label' => $template
-				);
-			}
 
-		}
-$templateOptions2 =
+    foreach ($locales as $value) {
+      $locale = $value['key'];
+      $lang = [];
+      if (empty($submissionFiles)) break;
+      foreach ($submissionFiles as $submissionFile) {
+        $subName = $submissionFile->getData('name', $locale);
+        if (empty($subName)) {
+          $subName = $submissionFile->getLocalizedData('name');
+        }
+        $lang[] = array(
+          'value' => $submissionFile->getId(),
+          'label' => $subName
+        );
+      }
 
-		// Update the values so the proper option is selected on thr form initiation if full-text isn't selected for the specific locale
-		$values = $publication->getData('jatsParser::fullTextFileId');
-		$emptyValues = array_fill_keys(array_keys($options), null);
-		empty($values) ? $values = $emptyValues : $values = array_merge($emptyValues, $values);
+      $options[$locale] = $lang;
 
-		$plugin = PluginRegistry::getPlugin('generic', 'jatsparserplugin'); /* @var $plugin JATSParserPlugin */
-		$context = Application::get()->getRequest()->getContext();
-		$convertToPdf = $plugin->getSetting($context->getId(), 'convertToPdf');
+      $pdfOptions[$locale][] = array(
+        'value' => true,
+        'label' => __('common.yes')
+      );
+    }
 
-		// TODO: Acá se pueden agregar opciones al menú de JatsParser dentro de la sección de publicación
+    // Update the values so the proper option is selected on thr form initiation if full-text isn't selected for the specific locale
+    $values = $publication->getData('jatsParser::fullTextFileId');
+    $emptyValues = array_fill_keys(array_keys($options), null);
+    empty($values) ? $values = $emptyValues : $values = array_merge($emptyValues, $values);
 
-		if (!empty($options)) {
-			$this->addField(new FieldOptions('jatsParser::fullTextFileId', [
-				'label' => __('plugins.generic.jatsParser.publication.jats.label'),
-				'description' => $msg,
-				'isMultilingual' => true,
-				'type' => 'radio',
-				'options' => $options,
-				'value' => $values,
-			]));
-			if ($convertToPdf) {
-				$this->addField(new FieldOptions('jatsParser::pdfGalley', [
-					'label' => __('plugins.generic.jatsParser.publication.jats.pdf.label'),
-					'type' => 'checkbox',
-					'isMultilingual' => true,
-					'options' => $pdfOptions,
-				]));
+    $plugin = PluginRegistry::getPlugin('generic', 'jatsparserplugin'); /* @var $plugin JATSParserPlugin */
+    $context = Application::get()->getRequest()->getContext();
+    $convertToPdf = $plugin->getSetting($context->getId(), 'convertToPdf');
 
-        // TODO: Future Feature
-				// $this->addField(new FieldOptions('jatsParser::selectedTemplate', [
-				// 	'label' => 'Select Template',
-				// 	'type' => 'radio',
-				// 	'isMultilingual' => true,
-				// 	'options' => $templateOptions,
-				// ]));
 
-				$this->addField(new FieldOptions('jatsParser::imageOption', [
-					'label' => 'Select journal image on first page',
-					'type' => 'radio',
-					'isMultilingual' => true,
-					'options' => $imagesFormOptions,
-				]));
-			}
-		} else {
-			$this->addField(new FieldHTML("addProductionReadyFiles", array(
-				'description' => $msg
-			)));
-		}
-	}
+    if (!empty($options)) {
+
+      if ($convertToPdf) {
+        $this->addGroup([
+          'id' => 'standardOptions',
+          'label' => '',
+        ])
+
+          ->addField(new FieldOptions('jatsParser::fullTextFileId', [
+            'label' => __('plugins.generic.jatsParser.publication.jats.label'),
+            'description' => $msg,
+            'isMultilingual' => true,
+            'type' => 'radio',
+            'options' => $options,
+            'value' => $values,
+            'groupId' => 'standardOptions'
+          ]))
+          ->addField(new FieldOptions('jatsParser::pdfGalley', [
+            'label' => __('plugins.generic.jatsParser.publication.jats.pdf.label'),
+            'type' => 'checkbox',
+            'isMultilingual' => true,
+            'options' => $pdfOptions,
+            'groupId' => 'standardOptions'
+          ]))
+
+          ->addField(new FieldOptions('imageOnFirstPage', [
+            'label' => 'Select journal image on first page',
+            'type' => 'radio',
+            'options' => $imagesFormOptions,
+            'isRequired' => true,
+            'groupId' => 'standardOptions'
+          ]))
+
+          ->addField(new FieldOptions('isChangingImageOptions', [
+            'label' => 'Do you want to add advanced image options?',
+            'type' => 'checkbox',
+            'options' => $wantsToAddImageOptions,
+            'groupId' => 'standardOptions',
+          ]));
+
+        $this->addGroup([
+          'id' => 'advancedImageOptions',
+          'label' => 'Advanced Image Options',
+          'showWhen' => 'isChangingImageOptions'
+        ])
+          ->addField(new FieldText('customWidth', [
+            'label' => ('Width (in mm)'),
+            'inputType' => 'number',
+            'groupId' => 'advancedImageOptions'
+          ]));
+      }
+    } else {
+      $this->addField(new FieldHTML("addProductionReadyFiles", array(
+        'description' => $msg
+      )));
+    }
+  }
 }
