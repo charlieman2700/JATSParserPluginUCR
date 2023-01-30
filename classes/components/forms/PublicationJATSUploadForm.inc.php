@@ -125,7 +125,7 @@ class PublicationJATSUploadForm extends FormComponent
           'showWhen' => 'isChangingImageOptions'
         ])
           ->addField(new FieldText('customWidth', [
-            'label' => ('Width (in mm)'),
+            'label' => ('Width in mm (default is 40mm)'),
             'inputType' => 'number',
             'groupId' => 'advancedImageOptions'
           ]));
