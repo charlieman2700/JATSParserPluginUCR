@@ -246,8 +246,7 @@ class PdfGenerator
     if (!empty($imageUrl)) {
       $journalFilesPath = __DIR__ . '/../../../' . Config::getVar('files', 'public_files_dir') . '/journals/' . $journal->getId() . '/'; // TCPDF accepts only relative path
       $imageLocation = $journalFilesPath . $imageUrl['uploadName'];
-    } 
-    else {
+    } else {
       $imageLocation =  '';
     }
     return $imageLocation;
@@ -268,9 +267,14 @@ class PdfGenerator
     $imageOnFrontPage = $this->_getJournalLogo();
 
     $this->_pdfDocument->Image($logoUcr, PDF_MARGIN_LEFT, 3, 40);
-    $rightImageWidth = 40;
-    $rightImagePositionInX = $this->_pdfDocument->getPageWidth() - PDF_MARGIN_RIGHT - $rightImageWidth;
-    $this->_pdfDocument->Image($imageOnFrontPage, $rightImagePositionInX, 3, 40);
+    $logoWidth = 40;
+    $userWantsCustomWidth = $this->_formParams['isChangingImageOptions'] === 'true';
+    if ($userWantsCustomWidth) {
+      $logoWidth = (float) $this->_formParams['customWidth'];
+    }
+
+    $rightImagePositionInX = $this->_pdfDocument->getPageWidth() - PDF_MARGIN_RIGHT - $logoWidth;
+    $this->_pdfDocument->Image($imageOnFrontPage, $rightImagePositionInX, 3, $logoWidth);
 
     $journalName = $context->getLocalizedSetting('name');
 
