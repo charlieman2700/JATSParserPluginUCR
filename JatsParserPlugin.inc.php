@@ -13,7 +13,6 @@
 
 require_once __DIR__ . '/JATSParser/vendor/autoload.php';
 
-import('plugins.generic.jatsParser.ChromePhp');
 import('lib.pkp.classes.plugins.GenericPlugin');
 import('plugins.generic.jatsParser.classes.JATSParserDocument');
 import('plugins.generic.jatsParser.classes.components.forms.PublicationJATSUploadForm');
