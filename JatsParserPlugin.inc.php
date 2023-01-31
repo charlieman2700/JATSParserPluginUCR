@@ -13,7 +13,6 @@
 
 require_once __DIR__ . '/JATSParser/vendor/autoload.php';
 
-import('plugins.generic.jatsParser.ChromePhp');
 import('lib.pkp.classes.plugins.GenericPlugin');
 import('plugins.generic.jatsParser.classes.JATSParserDocument');
 import('plugins.generic.jatsParser.classes.components.forms.PublicationJATSUploadForm');
@@ -125,12 +124,13 @@ class JatsParserPlugin extends GenericPlugin
 	 * @param $issue Issue
 	 * @param
 	 */
-	private function pdfCreation(string $htmlString, Publication $publication, Request $request, string $localeKey, $submissionFileForPdf): string
+	private function pdfCreation(string $htmlString, Publication $publication, Request $request,
+   string $localeKey, $submissionFileForPdf, $params): string
 	{
 		import('lib.pkp.classes.file.PrivateFileManager');
 		$fileMgr = new PrivateFileManager();
 		$path = $fileMgr->getBasePath() . DIRECTORY_SEPARATOR . $submissionFileForPdf->getData('path');
-		$pdfCreator = new PdfGenerator($htmlString,  $publication,  $request,  $localeKey, $this->getPluginPath(), $path);
+		$pdfCreator = new PdfGenerator($htmlString,  $publication,  $request,  $localeKey, $this->getPluginPath(), $path,$params);
 		return $pdfCreator->createPdf();
 	}
 
@@ -362,7 +362,7 @@ class JatsParserPlugin extends GenericPlugin
 
 			// Finally, convert and receive TCPDF output as a binary string
 			// TODO: Se localiza el llamado a la generación del pdf
-			$pdf = $this->pdfCreation($fullText, $newPublication, $request, $localeKey, $submissionFileForPdf);
+			$pdf = $this->pdfCreation($fullText, $newPublication, $request, $localeKey, $submissionFileForPdf,$params);
 
 			// Create a PDF Galley
 			$galleyId = $this->createGalley($localeKey, $newPublication);
