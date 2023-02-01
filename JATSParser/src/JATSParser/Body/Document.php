@@ -1,6 +1,5 @@
 <?php namespace JATSParser\Body;
 
-use ChromePhp;
 use JATSParser\Body\Section as Section;
 use JATSParser\Back\Journal as Journal;
 use JATSParser\Back\Book as Book;

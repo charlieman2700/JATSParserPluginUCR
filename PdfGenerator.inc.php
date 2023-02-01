@@ -1,10 +1,10 @@
 <?php
 
-use JATSParser\Body\KeywordGroup;
 use JATSParser\PDF\TCPDFDocument;
 
-import('plugins.generic.jatsParser.KeywordGroup');
-include 'ChromePhp';
+require_once 'ChromePhp.php';
+require_once 'JATSParser/src/ArticleInfo.php';
+require_once 'KeywordGroup.inc.php';
 
 /**
  * This class is in charge of the pdf making
@@ -12,6 +12,7 @@ include 'ChromePhp';
  */
 class PdfGenerator
 {
+  private ArticleInfo $_articleInfo;
   private string $_htmlString;
   private Publication $_publication;
   private Request $_request;
@@ -20,20 +21,6 @@ class PdfGenerator
   private TCPDFDocument $_pdfDocument;
   private $document;
   private static $xpath;
-  private $keywords = array();
-  private $_title = '';
-  private $_doi = '';
-  private $_volume = '';
-  private $_issue = '';
-  private $_fpage = '';
-  private $_lpage = '';
-  private $_enTitle = '';
-  private $_category = '';
-  private $_journalId = '';
-  private $_issn = '';
-  private $_publisher = '';
-  private $_abbreviatedTitle = '';
-  private $_license = '';
   private $_formParams;
 
 
@@ -48,105 +35,97 @@ class PdfGenerator
     $document = new \DOMDocument;
     $this->document = $document->load($submissionPluginPath);
     self::$xpath = new \DOMXPath($document);
-
     $context = $this->_request->getContext(); // Journal context
-    $this->_journalId = $context->getLocalizedSetting('acronym');
-    $this->_issn = $context->getSetting('printIssn');
-    $this->_publisher = $context->getSetting('publisherInstitution');
-    $this->_abbreviatedTitle = $context->getLocalizedSetting('abbreviation');
-
+    $this->_articleInfo = new ArticleInfo(self::$xpath, $context);
     $this->_formParams = $formParams;
-
-    $this->extractContent();
   }
-  private function extractContent()
-  {
-    $articleContent = array();
-    foreach (self::$xpath->evaluate("/article/front/article-meta/kwd-group") as $kwdGroupNode) {
-      $kwGroupFound = new KeywordGroup($kwdGroupNode, self::$xpath);
-      $articleContent[] = $kwGroupFound;
-    }
-    $this->keywords = $articleContent;
 
-    foreach (self::$xpath->evaluate("/article/front/article-meta/title-group/article-title") as $node) {
-      $this->_title = $node->nodeValue;
-    }
-
-    foreach (self::$xpath->evaluate("/article/front/article-meta/article-categories/subj-group/subject") as $node) {
-      $this->_category = $node->nodeValue;
-    }
-
-    foreach (self::$xpath->evaluate("/article/front/article-meta/title-group/trans-title-group/trans-title") as $node) {
-      $this->_enTitle = $node->nodeValue;
-    }
-
-
-    foreach (self::$xpath->evaluate("//article-id") as $node) {
-      $this->_doi = $node->nodeValue;
-    }
-
-    foreach (self::$xpath->evaluate("//volume") as $key => $node) {
-      if ($key == 0) {
-        $this->_volume = $node->nodeValue;
-      }
-    }
-
-    foreach (self::$xpath->evaluate("//issue") as $key => $node) {
-      if ($key == 0) {
-        $this->_issue = $node->nodeValue;
-      }
-    }
-
-    foreach (self::$xpath->evaluate("//fpage") as $key => $node) {
-      if ($key == 0) {
-        $this->_fpage = $node->nodeValue;
-      }
-    }
-
-    foreach (self::$xpath->evaluate("//lpage") as $key => $node) {
-      if ($key == 0) {
-        $this->_lpage = $node->nodeValue;
-      }
-    }
-  }
 
   public function createPdf(): string
   {
-    $context = $this->_request->getContext(); /* @var $context Journal */
-    $userGroupDao = DAORegistry::getDAO('UserGroupDAO'); /* @var $userGroupDao UserGroupDAO */
-    $userGroups = $userGroupDao->getByContextId($context->getId())->toArray();
-
-    $articleDataString = $this->_getArticleDataString($this->_publication, $this->_request, $this->_localeKey);
-
-    $this->_pdfDocument->SetCreator(PDF_CREATOR);
-
-    $this->_pdfDocument->setPrintHeader(false);
-    $this->_setTitle($this->_pdfDocument);
-    $this->_pdfDocument->SetAuthor($this->_publication->getAuthorString($userGroups));
-    $this->_pdfDocument->SetSubject($this->_publication->getLocalizedData('subject', $this->_localeKey));
-
-    $this->_pdfDocument->SetHeaderData('', 20, $this->_title, $articleDataString);
+    $this->_setData();
     $this->_setFundamentalVisualizationParamters($this->_pdfDocument);
-    $this->_pdfDocument->setPageFormat('LETTER', "P"); // Recibe el formato y la orientación del documento como parámetros.
-
+    $this->_pdfDocument->setPrintHeader(false);
     $this->_pdfDocument->AddPage();
     $this->_createFrontPage();
-
     $this->_createTitleSection();
     $this->_pdfDocument->setPrintHeader(true);
     $this->_createAuthorsSection();
     $this->_createAbstractSection();
     $this->_pdfDocument->AddPage();
     $this->_createTextSection();
-
     return $this->_pdfDocument->Output('article.pdf', 'S');
+  }
+
+
+  private function _createFrontPage(): void
+  {
+    $this->_createHeaderSection();
+    $this->_pdfDocument->Ln(9);
+    $this->_createJournalInformationSection();
+    $this->_pdfDocument->Ln(1);
+    $this->_createArticleInformationSection();
+    $this->_pdfDocument->Ln(9);
+    $this->_createSpanishTitleSection();
+    $this->_pdfDocument->Ln(10);
+    $this->_createEnglishTitleSection();
+    $this->_pdfDocument->Ln(9);
+    $this->_createCategorySection();
+    $this->_pdfDocument->Ln(10);
+    $this->_createKeywordsSection();
+  }
+
+  private function _createTitleSection(): void
+  {
+    $this->_pdfDocument->SetFillColor(255, 255, 255);
+    $this->_pdfDocument->SetFont('times', 'B', 10);
+    $this->_pdfDocument->Ln(6);
+  }
+
+  private function _createAbstractSection(): void
+  {
+    if ($abstract = $this->_publication->getLocalizedData('abstract', $this->_localeKey)) {
+      $this->_pdfDocument->setFont('times', 'B', 11);
+      $this->_pdfDocument->MultiCell('', '', 'Abstract', 0, 'L', 1, 1, '', '', true);
+      $this->_pdfDocument->setCellPaddings(5, 5, 5, 5);
+      $this->_pdfDocument->SetFillColor(255, 255, 255);
+      $this->_pdfDocument->SetFont('times', '', 9);
+      $this->_pdfDocument->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 4, 'color' => array(255, 255, 255))); // Tipo de linea divisoria y color
+      $this->_pdfDocument->writeHTMLCell('', '', '', '', $abstract, 'B', 1, 1, true, 'J', true);
+      $this->_pdfDocument->Ln(4);
+    }
+  }
+
+  private function _setData(): void
+  {
+    $context = $this->_request->getContext(); /* @var $context Journal */
+    $userGroupDao = DAORegistry::getDAO('UserGroupDAO'); /* @var $userGroupDao UserGroupDAO */
+    $userGroups = $userGroupDao->getByContextId($context->getId())->toArray();
+    $articleDataString = $this->_getArticleDataString($this->_publication, $this->_request, $this->_localeKey);
+
+    $this->_pdfDocument->SetCreator(PDF_CREATOR);
+    $this->_setTitle($this->_pdfDocument);
+    $this->_pdfDocument->SetAuthor($this->_publication->getAuthorString($userGroups));
+    $this->_pdfDocument->SetSubject($this->_publication->getLocalizedData('subject', $this->_localeKey));
+    $this->_pdfDocument->SetHeaderData('', 20, $this->_articleInfo->getTitle(), $articleDataString);
+
+    $article = $this->_articleInfo;
+    $abbreviatedTitle = $article->getAbbreviatedTitle();
+    $publisher = $article->getPublisher();
+    $volume = $article->getVolume();
+    $issue = $article->getIssue();
+    $issn = $article->getIssn();
+
+    // TODO Cambiar la variable de _abbreviatedTitle porque lo que va es el journal name
+    $footer = '<b>License (open-acces) •</b> ' . $abbreviatedTitle . ' <b>•</b> ' . $publisher . ' <b>• Volume: </b>' . $volume . ' <b>• Issue: </b>' . $issue . '<b>•</b> <b>ISSN (print): </b>' . $issn . ' <b>• Pages</b> ';
+    $this->_pdfDocument->setFooterHtml($footer);
   }
 
   private function _createKeywordsSection()
   {
     $keywordIndex = 1;
     $keywordPrintString = '';
-    foreach ($this->keywords as $key => $keywordGroup) {
+    foreach ($this->_articleInfo->getKeywords() as $key => $keywordGroup) {
       $this->_pdfDocument->setFont('times', '', 21);
       $this->_pdfDocument->MultiCell('', '', $keywordGroup->getTitle(), 0, 'C', 1, 1, '', '', true);
       $this->_pdfDocument->setFont('times', '', 12);
@@ -170,8 +149,6 @@ class PdfGenerator
 
   private function _setFundamentalVisualizationParamters(TCPDFDocument $pdfDocument): void
   {
-    // TODO Cambiar la variable de _abbreviatedTitle porque lo que va es el journal name
-    $footer = '<b>License (open-acces) •</b> ' . $this->_abbreviatedTitle . ' <b>•</b> ' . $this->_publisher . ' <b>• Volume: </b>' . $this->_volume . ' <b>• Issue: </b>' . $this->_issue . '<b>•</b> <b>ISSN (print): </b>' . $this->_issn . ' <b>• Pages</b> ';
     $pdfDocument->setHeaderFont(array('times', '', 10));
     $pdfDocument->setFooterFont(array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
     $pdfDocument->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
@@ -180,12 +157,11 @@ class PdfGenerator
     $pdfDocument->SetFooterMargin(-15.23492);
     $pdfDocument->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
     $pdfDocument->setImageScale(PDF_IMAGE_SCALE_RATIO);
-    $pdfDocument->setFooterHtml($footer);
+    $this->_pdfDocument->setPageFormat('LETTER', "P"); // Recibe el formato y la orientación del documento como parámetros.
   }
 
   private function _getJournalLogo(): string
   {
-
     $selectedImageOption = ($this->_formParams['imageOnFirstPage']);
     $imageUrl = '';
     $journal = $this->_request->getContext();
@@ -197,7 +173,7 @@ class PdfGenerator
     }
 
     if (!empty($imageUrl)) {
-      $journalFilesPath = __DIR__ . '/../../../' . Config::getVar('files', 'public_files_dir') . '/journals/' . $journal->getId() . '/'; 
+      $journalFilesPath = __DIR__ . '/../../../' . Config::getVar('files', 'public_files_dir') . '/journals/' . $journal->getId() . '/';
       $imageLocation = $journalFilesPath . $imageUrl['uploadName'];
     } else {
       $imageLocation =  '';
@@ -212,23 +188,39 @@ class PdfGenerator
     $this->_pdfDocument->writeHTML($a, true, false, false, false, 'R');
   }
 
-  private function _createFrontPage(): void
+  private function _createLogosSection(): void
   {
-    $context = $this->_request->getContext(); // Journal context
-
+    $logoWidth = 40;
     $logoUcr = $this->_pluginPath . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'logoUcr.png';
     $imageOnFrontPage = $this->_getJournalLogo();
-
-    $this->_pdfDocument->Image($logoUcr, PDF_MARGIN_LEFT, 3, 40);
-    $logoWidth = 40;
     $userWantsCustomWidth = $this->_formParams['isChangingImageOptions'] === 'true';
+
     if ($userWantsCustomWidth) {
       $logoWidth = (float) $this->_formParams['customWidth'];
     }
-
     $rightImagePositionInX = $this->_pdfDocument->getPageWidth() - PDF_MARGIN_RIGHT - $logoWidth;
-    $this->_pdfDocument->Image($imageOnFrontPage, $rightImagePositionInX, 3, $logoWidth);
 
+    $this->_pdfDocument->Image($logoUcr, PDF_MARGIN_LEFT, 3, 40);
+    $this->_pdfDocument->Image($imageOnFrontPage, $rightImagePositionInX, 3, $logoWidth);
+  }
+
+  private function _createJournalInformationSection(): void 
+  {
+    $context = $this->_request->getContext(); // Journal context
+    $this->_pdfDocument->SetFillColor(255, 255, 255); //rgb
+    $this->_pdfDocument->SetFont('times', 'B', 15);
+    $this->_pdfDocument->setCellHeightRatio(1.2);
+    $this->_pdfDocument->MultiCell('', '', 'Journal Information', 0, 'R', 1, 1, '', '', true);
+    $this->_printPairInfo('Journal ID (publisher-id):', $context->getLocalizedSetting('acronym')); //Localized es para objetos
+    $this->_printPairInfo('Abbreviated Title:', $context->getLocalizedSetting('abbreviation'));
+    $this->_printPairInfo('ISSN (print):', $context->getSetting('printIssn')); // setting normal es para strings
+    $this->_printPairInfo('Publisher:', $context->getSetting('publisherInstitution'));
+  }
+
+  private function _createHeaderSection(): void 
+  {
+    $this->_createLogosSection();
+    $context = $this->_request->getContext(); // Journal context
     $journalName = $context->getLocalizedSetting('name');
 
     $this->_pdfDocument->SetY(26);
@@ -240,68 +232,40 @@ class PdfGenerator
     $this->_pdfDocument->SetY(35.56);
     $this->_pdfDocument->SetX(25.4);
     $this->_pdfDocument->Cell(0, 0, '', 'T', 0, 'C');
+  }
 
-    $this->_pdfDocument->Ln(9);
-    ChromePhp::log($context);
-    $this->_pdfDocument->SetFillColor(255, 255, 255); //rgb
+  private function _createArticleInformationSection(): void
+  {
     $this->_pdfDocument->SetFont('times', 'B', 15);
-    $this->_pdfDocument->setCellHeightRatio(1.2);
-    $this->_pdfDocument->MultiCell('', '', 'Journal Information', 0, 'R', 1, 1, '', '', true);
-    $this->_printPairInfo('Journal ID (publisher-id):', $context->getLocalizedSetting('acronym')); //Localized es para objetos
-    $this->_printPairInfo('Abbreviated Title:', $context->getLocalizedSetting('abbreviation'));
-    $this->_printPairInfo('ISSN (print):', $context->getSetting('printIssn')); // setting normal es para strings
-    $this->_printPairInfo('Publisher:', $context->getSetting('publisherInstitution'));
-
-    $this->_pdfDocument->SetFont('times', 'B', 15);
-    $this->_pdfDocument->Ln(1);
     $this->_pdfDocument->MultiCell('', '', 'Article/Issue Information', 0, 'R', 1, 1, '', '', true);
-    $this->_printPairInfo('Volume:', $this->_volume);
-    $this->_printPairInfo('Issue:', $this->_issue);
-    $this->_printPairInfo('Pages:', "$this->_fpage - $this->_lpage");
-    $this->_printPairInfo('DOI:', $this->_doi);
+    $this->_printPairInfo('Volume:', $this->_articleInfo->getVolume());
+    $this->_printPairInfo('Issue:', $this->_articleInfo->getIssue());
+    $this->_printPairInfo('Pages:', $this->_articleInfo->getFpage() . '-' . $this->_articleInfo->getLpage());
+    $this->_printPairInfo('DOI:', $this->_articleInfo->getDoi());
+  }
 
-    $this->_pdfDocument->Ln(9);
-    $this->_pdfDocument->SetFont('times', 'B', 21);
-    $this->_pdfDocument->MultiCell('', '', $this->_title, 0, 'C', 1, 1, '', '', true);
-    $this->_pdfDocument->Ln(10);
-    $this->_pdfDocument->SetFont('times', 'B', 12);
-    $this->_pdfDocument->MultiCell('', '', 'Translated Title (en)', 0, 'C', 1, 1, '', '', true);
-    $this->_pdfDocument->SetFont('times', 'B', 21);
-    $this->_pdfDocument->MultiCell('', '', $this->_enTitle, 0, 'C', 1, 1, '', '', true);
-
-
-    $this->_pdfDocument->Ln(9);
+  private function _createCategorySection(): void
+  {
     $this->_pdfDocument->SetFont('times', 'B', 14);
     $this->_pdfDocument->MultiCell('', '', 'Categorías', 0, 'R', 1, 1, '', '', true);
     $this->_pdfDocument->SetFont('times', '', 9);
-    $textToWrite = '<b>' . 'Tipo: ' . ' </b>' . $this->_category;
+    $textToWrite = '<b>' . 'Tipo: ' . ' </b>' . $this->_articleInfo->getCategory();
     $this->_pdfDocument->writeHTML($textToWrite, true, false, false, false, 'R');
-    $this->_pdfDocument->Ln(10);
-
-    $this->_createKeywordsSection();
   }
 
-  private function _createTitleSection(): void
+  private function _createSpanishTitleSection():void
   {
-    $this->_pdfDocument->SetFillColor(255, 255, 255); 
-    $this->_pdfDocument->SetFont('times', 'B', 10);
-    $this->_pdfDocument->Ln(6);
+    $this->_pdfDocument->SetFont('times', 'B', 21);
+    $this->_pdfDocument->MultiCell('', '', $this->_articleInfo->getTitle(), 0, 'C', 1, 1, '', '', true);
   }
 
-  private function _createAbstractSection(): void
+  private function _createEnglishTitleSection():void
   {
-    if ($abstract = $this->_publication->getLocalizedData('abstract', $this->_localeKey)) {
-      $this->_pdfDocument->setFont('times', 'B', 11);
-      $this->_pdfDocument->MultiCell('', '', 'Abstract', 0, 'L', 1, 1, '', '', true);
-      $this->_pdfDocument->setCellPaddings(5, 5, 5, 5);
-      $this->_pdfDocument->SetFillColor(255, 255, 255); 
-      $this->_pdfDocument->SetFont('times', '', 9);
-      $this->_pdfDocument->SetLineStyle(array('width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 4, 'color' => array(255, 255, 255))); // Tipo de linea divisoria y color
-      $this->_pdfDocument->writeHTMLCell('', '', '', '', $abstract, 'B', 1, 1, true, 'J', true);
-      $this->_pdfDocument->Ln(4);
-    }
+    $this->_pdfDocument->SetFont('times', 'B', 12);
+    $this->_pdfDocument->MultiCell('', '', 'Translated Title (en)', 0, 'C', 1, 1, '', '', true);
+    $this->_pdfDocument->SetFont('times', 'B', 21);
+    $this->_pdfDocument->MultiCell('', '', $this->_articleInfo->getEnTitle(), 0, 'C', 1, 1, '', '', true);
   }
-
   private function _createAuthorsSection(): void
   {
     $this->_pdfDocument->AddPage();
@@ -365,7 +329,6 @@ class PdfGenerator
     }
 
     $printIssn = $context->getSetting('printIssn');
-    ChromePhp::log($printIssn);
 
     return $articleDataString;
   }

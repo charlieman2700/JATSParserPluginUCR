@@ -2,8 +2,6 @@
 
 namespace JATSParser\Body;
 
-use ChromePhp;
-
 class KeywordGroup extends AbstractElement
 {
 
