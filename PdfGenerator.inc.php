@@ -2,9 +2,11 @@
 
 use JATSParser\Body\KeywordGroup;
 use JATSParser\PDF\TCPDFDocument;
+use ArticleInfo;
+
+require_once 'ChromePhp.php';
 
 import('plugins.generic.jatsParser.KeywordGroup');
-include 'ChromePhp';
 
 /**
  * This class is in charge of the pdf making
@@ -12,6 +14,7 @@ include 'ChromePhp';
  */
 class PdfGenerator
 {
+  private ArticleInfo $articleInfo;
   private string $_htmlString;
   private Publication $_publication;
   private Request $_request;
@@ -242,7 +245,7 @@ class PdfGenerator
     $this->_pdfDocument->Cell(0, 0, '', 'T', 0, 'C');
 
     $this->_pdfDocument->Ln(9);
-    ChromePhp::log($context);
+    // ChromePhp::log($context);
     $this->_pdfDocument->SetFillColor(255, 255, 255); //rgb
     $this->_pdfDocument->SetFont('times', 'B', 15);
     $this->_pdfDocument->setCellHeightRatio(1.2);

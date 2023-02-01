@@ -2,13 +2,9 @@
 
 namespace JATSParser\PDF;
 
-use ChromePhp;
-use JATSParser\Body\Document as JATSDocument;
-use JATSParser\HTML\Document as HTMLDocument;
 
 require_once(__DIR__ . '/../../../vendor/tecnickcom/tcpdf/tcpdf.php');
 
-import('plugins.generic.jatsParser.ChromePhp');
 
 class TCPDFDocument extends \TCPDF
 {
