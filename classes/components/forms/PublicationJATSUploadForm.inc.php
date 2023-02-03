@@ -128,6 +128,20 @@ class PublicationJATSUploadForm extends FormComponent
             'inputType' => 'number',
             'groupId' => 'advancedOptions',
             'showWhen' => FormFields::$advancedImageOptions->id,
+          ]))
+
+          ->addField(new FieldOptions(FormFields::$wantsCustomTitleStyle->id, [
+            'label' => FormFields::$wantsCustomTitleStyle->label,
+            'type' => 'checkbox',
+            'options' => FormFields::$wantsCustomTitleStyle->options,
+            'groupId' => 'advancedOptions'
+          ]))
+
+          ->addField(new FieldText(FormFields::$customTitle->id, [
+            'label' => FormFields::$customTitle->label,
+            'inputType' => 'text',
+            'groupId' => 'advancedOptions',
+            'showWhen' => FormFields::$wantsCustomTitleStyle->id,
           ]));
       }
     } else {
