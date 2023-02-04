@@ -1,10 +1,13 @@
 <?php
 
 use JATSParser\PDF\TCPDFDocument;
+use fValues\FormFields;
+
 
 require_once 'ChromePhp.php';
 require_once 'JATSParser/src/ArticleInfo.php';
 require_once 'KeywordGroup.inc.php';
+require_once 'classes/components/forms/FormValue.php';
 
 /**
  * This class is in charge of the pdf making
@@ -26,6 +29,9 @@ class PdfGenerator
 
   public function __construct(string $htmlString, Publication $publication, Request $request, string $localeKey, string $pluginPath, $submissionPluginPath, $formParams)
   {
+
+    // FormFields is needed for mantain standard form fields same across the plugin
+    FormFields::init();
     $this->_htmlString = $htmlString;
     $this->_publication = $publication;
     $this->_request = $request;
@@ -162,7 +168,7 @@ class PdfGenerator
 
   private function _getJournalLogo(): string
   {
-    $selectedImageOption = ($this->_formParams['imageOnFirstPage']);
+    $selectedImageOption = ($this->_formParams[FormFields::$imageOnFirstPage->id]);
     $imageUrl = '';
     $journal = $this->_request->getContext();
 
@@ -193,10 +199,10 @@ class PdfGenerator
     $logoWidth = 40;
     $logoUcr = $this->_pluginPath . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'logoUcr.png';
     $imageOnFrontPage = $this->_getJournalLogo();
-    $userWantsCustomWidth = $this->_formParams['isChangingImageOptions'] === 'true';
+    $userWantsCustomWidth = $this->_formParams[FormFields::$advancedImageOptions->id] === 'true';
 
     if ($userWantsCustomWidth) {
-      $logoWidth = (float) $this->_formParams['customWidth'];
+      $logoWidth = (float) $this->_formParams[FormFields::$customLogoWidth->id];
     }
     $rightImagePositionInX = $this->_pdfDocument->getPageWidth() - PDF_MARGIN_RIGHT - $logoWidth;
 
@@ -204,7 +210,7 @@ class PdfGenerator
     $this->_pdfDocument->Image($imageOnFrontPage, $rightImagePositionInX, 3, $logoWidth);
   }
 
-  private function _createJournalInformationSection(): void 
+  private function _createJournalInformationSection(): void
   {
     $context = $this->_request->getContext(); // Journal context
     $this->_pdfDocument->SetFillColor(255, 255, 255); //rgb
@@ -217,7 +223,7 @@ class PdfGenerator
     $this->_printPairInfo('Publisher:', $context->getSetting('publisherInstitution'));
   }
 
-  private function _createHeaderSection(): void 
+  private function _createHeaderSection(): void
   {
     $this->_createLogosSection();
     $context = $this->_request->getContext(); // Journal context
@@ -253,13 +259,13 @@ class PdfGenerator
     $this->_pdfDocument->writeHTML($textToWrite, true, false, false, false, 'R');
   }
 
-  private function _createSpanishTitleSection():void
+  private function _createSpanishTitleSection(): void
   {
     $this->_pdfDocument->SetFont('times', 'B', 21);
     $this->_pdfDocument->MultiCell('', '', $this->_articleInfo->getTitle(), 0, 'C', 1, 1, '', '', true);
   }
 
-  private function _createEnglishTitleSection():void
+  private function _createEnglishTitleSection(): void
   {
     $this->_pdfDocument->SetFont('times', 'B', 12);
     $this->_pdfDocument->MultiCell('', '', 'Translated Title (en)', 0, 'C', 1, 1, '', '', true);
