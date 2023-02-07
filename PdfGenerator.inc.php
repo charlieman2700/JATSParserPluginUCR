@@ -102,6 +102,25 @@ class PdfGenerator
     }
   }
 
+  private function _getAuthorInitials(): string
+  {
+
+    $authors = $this->_publication->getData('authors');
+    $authorsInitialsString = '';
+
+    foreach ($authors as $author) {
+      $authorName = htmlspecialchars($author->getGivenName($this->_localeKey)) . ' ' . htmlspecialchars($author->getFamilyName($this->_localeKey));
+      $words = preg_split('/\s+/', $authorName);
+
+      foreach ($words as $word) {
+        $authorsInitialsString = $authorsInitialsString . substr($word, 0, 1) . '.';
+      }
+      $authorsInitialsString = $authorsInitialsString . ' - ';
+    }
+    $authorsInitialsString =  substr($authorsInitialsString, 0, -3);
+    return $authorsInitialsString;
+  }
+
   private function _setData(): void
   {
     $context = $this->_request->getContext(); /* @var $context Journal */
@@ -113,7 +132,10 @@ class PdfGenerator
     $this->_setTitle($this->_pdfDocument);
     $this->_pdfDocument->SetAuthor($this->_publication->getAuthorString($userGroups));
     $this->_pdfDocument->SetSubject($this->_publication->getLocalizedData('subject', $this->_localeKey));
-    $this->_pdfDocument->SetHeaderData('', 20, $this->_articleInfo->getTitle(), $articleDataString);
+    $authorsInitials = $this->_getAuthorInitials();
+
+
+    $this->_pdfDocument->SetHeaderData('', 20, $this->_articleInfo->getTitle() . ' ' . $authorsInitials, $articleDataString);
 
     $article = $this->_articleInfo;
     $abbreviatedTitle = $article->getAbbreviatedTitle();
