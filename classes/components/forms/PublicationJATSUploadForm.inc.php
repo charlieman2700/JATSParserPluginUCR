@@ -5,6 +5,9 @@ use \PKP\components\forms\FormComponent;
 use \PKP\components\forms\FieldOptions;
 use \PKP\components\forms\FieldText;
 
+use fValues\FormFields;
+
+
 define("FORM_PUBLICATION_JATS_FULLTEXT", "jatsUpload");
 
 class PublicationJATSUploadForm extends FormComponent
@@ -26,6 +29,9 @@ class PublicationJATSUploadForm extends FormComponent
    */
   public function __construct($action, $locales, $publication, $submissionFiles, $msg)
   {
+
+    // Required to initialize FormFields store standardize form values accross the project
+    FormFields::init();
     /**
      * @var $submissionFile SubmissionFile
      */
@@ -33,17 +39,9 @@ class PublicationJATSUploadForm extends FormComponent
     $this->successMessage = __('plugins.generic.jatsParser.publication.jats.fulltext.success');
     $this->locales = $locales;
 
+
     $options = [];
     $pdfOptions = [];
-    $wantsToAddImageOptions = [
-      ['value' => 'yes', 'label' => 'Yes'],
-    ];
-    $imagesFormOptions = [
-      ['value' => 'logo', 'label' => 'Logo'],
-      ['value' => 'journalThumbnail', 'label' => 'Journal Thumbnail'],
-      ['value' => 'none', 'label' => 'None'],
-    ];
-
 
 
     foreach ($locales as $value) {
@@ -87,8 +85,8 @@ class PublicationJATSUploadForm extends FormComponent
           'label' => '',
         ])
 
-          ->addField(new FieldOptions('jatsParser::fullTextFileId', [
-            'label' => __('plugins.generic.jatsParser.publication.jats.label'),
+          ->addField(new FieldOptions(FormFields::$fullTextFileId->id, [
+            'label' => __(FormFields::$fullTextFileId->label),
             'description' => $msg,
             'isMultilingual' => true,
             'type' => 'radio',
@@ -96,38 +94,61 @@ class PublicationJATSUploadForm extends FormComponent
             'value' => $values,
             'groupId' => 'standardOptions'
           ]))
-          ->addField(new FieldOptions('jatsParser::pdfGalley', [
-            'label' => __('plugins.generic.jatsParser.publication.jats.pdf.label'),
+          ->addField(new FieldOptions(FormFields::$pdfGalley->id, [
+            'label' => __(FormFields::$pdfGalley->label),
             'type' => 'checkbox',
             'isMultilingual' => true,
             'options' => $pdfOptions,
             'groupId' => 'standardOptions'
           ]))
 
-          ->addField(new FieldOptions('imageOnFirstPage', [
-            'label' => 'Select journal image on first page',
+          ->addField(new FieldOptions(FormFields::$imageOnFirstPage->id, [
+            'label' => FormFields::$imageOnFirstPage->label,
             'type' => 'radio',
-            'options' => $imagesFormOptions,
+            'options' => FormFields::$imageOnFirstPage->options,
             'isRequired' => true,
             'groupId' => 'standardOptions'
-          ]))
-
-          ->addField(new FieldOptions('isChangingImageOptions', [
-            'label' => 'Do you want to add advanced image options?',
-            'type' => 'checkbox',
-            'options' => $wantsToAddImageOptions,
-            'groupId' => 'standardOptions',
           ]));
 
+
         $this->addGroup([
-          'id' => 'advancedImageOptions',
-          'label' => 'Advanced Image Options',
-          'showWhen' => 'isChangingImageOptions'
+          'id' => 'advancedOptions',
+          'label' => 'Advanced Options',
         ])
-          ->addField(new FieldText('customWidth', [
-            'label' => ('Width in mm (default is 40mm)'),
+
+          ->addField(new FieldOptions(FormFields::$advancedImageOptions->id, [
+            'label' => FormFields::$advancedImageOptions->label,
+            'type' => 'checkbox',
+            'options' => FormFields::$advancedImageOptions->options,
+            'groupId' => 'advancedOptions'
+          ]))
+
+          ->addField(new FieldText(FormFields::$customLogoWidth->id, [
+            'label' => FormFields::$customLogoWidth->label,
             'inputType' => 'number',
-            'groupId' => 'advancedImageOptions'
+            'groupId' => 'advancedOptions',
+            'showWhen' => FormFields::$advancedImageOptions->id,
+          ]))
+
+          ->addField(new FieldOptions(FormFields::$wantsCustomTitleStyle->id, [
+            'label' => FormFields::$wantsCustomTitleStyle->label,
+            'type' => 'checkbox',
+            'options' => FormFields::$wantsCustomTitleStyle->options,
+            'groupId' => 'advancedOptions'
+          ]))
+
+          ->addField(new FieldText(FormFields::$customSpanishTitle->id, [
+            'label' => FormFields::$customSpanishTitle->label,
+            'inputType' => 'text',
+            'groupId' => 'advancedOptions',
+            'showWhen' => FormFields::$wantsCustomTitleStyle->id,
+          ]))
+
+          ->addField(new FieldText(FormFields::$customEnglishTitle->id, [
+            'label' => FormFields::$customEnglishTitle->label,
+            'inputType' => 'text',
+            'groupId' => 'advancedOptions',
+            'showWhen' => FormFields::$wantsCustomTitleStyle->id,
           ]));
       }
     } else {
