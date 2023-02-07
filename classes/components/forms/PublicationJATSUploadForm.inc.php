@@ -137,8 +137,15 @@ class PublicationJATSUploadForm extends FormComponent
             'groupId' => 'advancedOptions'
           ]))
 
-          ->addField(new FieldText(FormFields::$customTitle->id, [
-            'label' => FormFields::$customTitle->label,
+          ->addField(new FieldText(FormFields::$customSpanishTitle->id, [
+            'label' => FormFields::$customSpanishTitle->label,
+            'inputType' => 'text',
+            'groupId' => 'advancedOptions',
+            'showWhen' => FormFields::$wantsCustomTitleStyle->id,
+          ]))
+
+          ->addField(new FieldText(FormFields::$customEnglishTitle->id, [
+            'label' => FormFields::$customEnglishTitle->label,
             'inputType' => 'text',
             'groupId' => 'advancedOptions',
             'showWhen' => FormFields::$wantsCustomTitleStyle->id,

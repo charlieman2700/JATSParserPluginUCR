@@ -261,16 +261,29 @@ class PdfGenerator
 
   private function _createSpanishTitleSection(): void
   {
-    $this->_pdfDocument->SetFont('times', 'B', 21);
-    $this->_pdfDocument->MultiCell('', '', $this->_articleInfo->getTitle(), 0, 'C', 1, 1, '', '', true);
+    if ($this->_formParams[FormFields::$wantsCustomTitleStyle->id] === 'true') {
+      $this->_pdfDocument->SetFont('times', '', 21);
+      $customSpanishTitle = $this->_formParams[FormFields::$customSpanishTitle->id];
+      $this->_pdfDocument->writeHTML($customSpanishTitle, true, false, false, false, 'C');
+    } else {
+      $this->_pdfDocument->SetFont('times', 'B', 21);
+      $this->_pdfDocument->MultiCell('', '', $this->_articleInfo->getTitle(), 0, 'C', 1, 1, '', '', true);
+    }
   }
 
   private function _createEnglishTitleSection(): void
   {
     $this->_pdfDocument->SetFont('times', 'B', 12);
     $this->_pdfDocument->MultiCell('', '', 'Translated Title (en)', 0, 'C', 1, 1, '', '', true);
-    $this->_pdfDocument->SetFont('times', 'B', 21);
-    $this->_pdfDocument->MultiCell('', '', $this->_articleInfo->getEnTitle(), 0, 'C', 1, 1, '', '', true);
+
+    if ($this->_formParams[FormFields::$wantsCustomTitleStyle->id] === 'true') {
+      $this->_pdfDocument->SetFont('times', '', 21);
+      $customEnglishTitle = $this->_formParams[FormFields::$customEnglishTitle->id];
+      $this->_pdfDocument->writeHTML($customEnglishTitle, true, false, false, false, 'C');
+    } else {
+      $this->_pdfDocument->SetFont('times', 'B', 21);
+      $this->_pdfDocument->MultiCell('', '', $this->_articleInfo->getEnTitle(), 0, 'C', 1, 1, '', '', true);
+    }
   }
   private function _createAuthorsSection(): void
   {

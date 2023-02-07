@@ -25,7 +25,8 @@ class FormFields
   public static FormValue $imageOnFirstPage;
   public static FormValue $fullTextFileId;
   public static FormValue $wantsCustomTitleStyle;
-  public static FormValue $customTitle;
+  public static FormValue $customSpanishTitle;
+  public static FormValue $customEnglishTitle;
   public static function init()
 
   {
@@ -70,9 +71,14 @@ class FormFields
       ]
     );
 
-    self::$customTitle = new FormValue(
-      'Insert style with html formatting (e.g. <b>My title</b> <i>Lorem Ipsum</i>)',
-      'customTitle',
+    self::$customSpanishTitle = new FormValue(
+      'Insert style for Spanish title with html syntax (e.g. <b>My title</b> <i>Lorem Ipsum</i>)',
+      'customSpanishTitle',
+    );
+
+    self::$customEnglishTitle = new FormValue(
+      'Insert style for English title with html syntax (e.g. <b>My title</b> <i>Lorem Ipsum</i>)',
+      'customEnglishTitle',
     );
   }
 }
